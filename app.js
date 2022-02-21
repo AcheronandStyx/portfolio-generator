@@ -6,8 +6,9 @@
  */
 
 const inquirer = require('inquirer');
-const fs = require('fs');
 const generatePage = require('./src/page-template.js'); // link the other js file
+// here we use object desctructuring to create vaiables rather than reference with dot notation.
+const { writeFile, copyFile } = require('./utils/generate-site.js');
 
 // inquirer script
 const promptUser = () => {
@@ -29,11 +30,11 @@ const promptUser = () => {
             type: 'input',
             name: 'github',
             message: 'Enter your GitHub Username',
-            validate: nameInput => {
-                if (nameInput) {
+            validate: githubInput => {
+                if (githubInput) {
                     return true;
                 } else {
-                    console.log('Please enter your name!');
+                    console.log('Please enter your GitHub username!');
                     return false;
                 }
             }
@@ -48,42 +49,53 @@ const promptUser = () => {
             type: 'input',
             name: 'about',
             message: 'Provide some information about yourself:',
+            when: ({ confirmAbout }) => confirmAbout
+            /*
             when: ({ confirmAbout }) => { // conditional that checks prior boolean and only runs this question if the users said true
                 if (confirmAbout) {
                     return true;
                 } else {
                     return false;
                 }
-            }
+            }*/
         }
     ])
 };
 
 const promptProject = portfolioData => {
-    // If there's no 'projects' array property, create one
-    if (!portfolioData.projects) {
-        portfolioData.projects = [];
-    }
     console.log(`
   =================
   Add a New Project
   =================
   `);
+
+    // If there's no 'projects' array property, create one
+    if (!portfolioData.projects) {
+        portfolioData.projects = [];
+    }
     return inquirer.prompt([
         {
             type: 'input',
             name: 'name',
-            message: 'What is the name of your project?'
+            message: 'What is the name of your project?',
+            validate: nameInput => {
+                if (nameInput) {
+                    return true;
+                } else {
+                    console.log('You need to enter a project name!');
+                    return false;
+                }
+            }
         },
         {
             type: 'input',
             name: 'description',
             message: 'Provide a description of the project (Required)',
-            validate: nameInput => {
-                if (nameInput) {
+            validate: descriptionInput => {
+                if (descriptionInput) {
                     return true;
                 } else {
-                    console.log('Please enter your name!');
+                    console.log('You need to enter a project description!');
                     return false;
                 }
             }
@@ -98,11 +110,11 @@ const promptProject = portfolioData => {
             type: 'input',
             name: 'link',
             message: 'Enter the GitHub link to your project. (Required)',
-            validate: nameInput => {
-                if (nameInput) {
+            validate: linkInput => {
+                if (linkInput) {
                     return true;
                 } else {
-                    console.log('Please enter your name!');
+                    console.log('You need to enter a project GitHub link!');
                     return false;
                 }
             }
@@ -130,16 +142,24 @@ const promptProject = portfolioData => {
     });
 };
 
+
+// delegate writefile and copyfile to thier own functions
+// A Promise chain is a series of Promise-based functions that run in order. 
 promptUser()
     .then(promptProject)
     .then(portfolioData => {
-        console.log(portfolioData);
-        const pageHTML = generatePage(portfolioData);
-
-        // fs.writeFile('./index.html', pageHTML, err => {
-        //   if (err) throw new Error(err);
-
-        //   console.log('Page created! Check out index.html in this directory to see it!');
-        // });
+        return generatePage(portfolioData);
+    })
+    .then(pageHTML => {
+        return writeFile(pageHTML);
+    })
+    .then(writeFileResponse => {
+        console.log(writeFileResponse);
+        return copyFile();
+    })
+    .then(copyFileResponse => {
+        console.log(copyFileResponse);
+    })
+    .catch(err => {
+        console.log(err);
     });
-
